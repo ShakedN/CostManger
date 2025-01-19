@@ -15,7 +15,7 @@ const apiRouter = require('./routes/api');
 
 
 
-mongoose.connect('mongodb+srv://shakedN:SH1212@cluster0.amvj7.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
+mongoose.connect('')
     .then(() => {
         console.log('Connected to MongoDB');
     })
