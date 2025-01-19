@@ -1,0 +1,3 @@
+MONGODB_URI=mongodb+srv://shakedN:SH1212@cluster0.amvj7.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
+PORT=3000
+NODE_ENV=development

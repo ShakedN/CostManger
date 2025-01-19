@@ -15,12 +15,15 @@ const apiRouter = require('./routes/api');
 
 
 
-mongoose.connect('mongodb+srv://shakedN:SH1212@cluster0.amvj7.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
+require('dotenv').config();
+const mongoose = require('mongoose');
+
+mongoose.connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => {
         console.log('Connected to MongoDB');
     })
     .catch((error) => {
-        console.log('Error connecting to MongoDB:', error);
+        console.error('Error connecting to MongoDB:', error);
     });
 
 app.get('/', (req, res) => {
