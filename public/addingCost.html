@@ -2,13 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Add Cost</title>
 </head>
 <body>
-<form method="post" action="http://localhost:3000/api/Costs">
-    <br/>name:<input type="text" name="name" />
-    <br/>id:<input type="text" name="id" />
-    <br/>price:<input type="text" name="price" />
+<h1>Add a new cost</h1>
+<form method="post" action="http://localhost:3000/api/costs">
+    <br/>description: <input type="text" name="description" required />
+    <br/>category: <input type="text" name="category" required />
+    <br/>user_id: <input type="number" name="user_id" required />
+    <br/>sum: <input type="number" name="sum" required />
+    <br/>date: <input type="date" name="date" />
     <br/><input type="submit" />
 </form>
 </body>

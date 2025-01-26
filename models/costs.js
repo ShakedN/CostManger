@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 const costSchema = new Schema({
     description: { type: String, required: true },
     category: { type: String, required: true },
-    user_id: { type: Number, required: true },
+    user_id: { type: String, ref: 'User', required: true  },
     sum: { type: Number, required: true },
     date: { type: Date, default: Date.now },
 });

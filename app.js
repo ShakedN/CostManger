@@ -1,5 +1,6 @@
 const createError = require('http-errors');
 const mongoose = require('mongoose');
+const dotenv = require('dotenv');
 mongoose.Promise = global.Promise;
 const express = require('express');
 const path = require('path');
@@ -11,17 +12,19 @@ const app = express();
 const indexRouter = require('./routes/index');
 const apiRouter = require('./routes/api');
 
+dotenv.config();
 
 
 
 
-mongoose.connect('mongodb+srv://shakedN:SH1212@cluster0.amvj7.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
-    .then(() => {
-        console.log('Connected to MongoDB');
-    })
-    .catch((error) => {
-        console.log('Error connecting to MongoDB:', error);
-    });
+
+mongoose.connect(process.env.MONGODB_URI, {
+    // Remove deprecated options
+    // useNewUrlParser: true,
+    // useUnifiedTopology: true,
+})
+    .then(() => console.log('MongoDB connected'))
+    .catch(err => console.error('MongoDB connection error:', err));
 
 app.get('/', (req, res) => {
     res.send('Hello, World!');
