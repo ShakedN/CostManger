@@ -3,53 +3,7 @@ const router = express.Router();
 const User = require('../models/users');
 const Cost = require('../models/costs');
 
-
-router.post('/users/add', async function (req, res) {
-    const { id, first_name, last_name, birthday = new Date(), marital_status = 'single' } = req.body;
-
-    // Check required fields
-    if (!id || !first_name || !last_name) {
-        return res.status(400).json({
-            message: 'Error: Missing required fields',
-        });
-    }
-
-    try {
-        // Check if user already exists
-        const existingUser = await User.findOne({ id });
-        if (existingUser) {
-            return res.status(409).json({
-                message: 'Error: User already exists',
-            });
-        }
-
-        // Create new user document
-        const newUser = await User.create({
-            id,
-            first_name,
-            last_name,
-            birthday,
-            marital_status,
-        });
-
-        // Respond to client
-        res.status(201).json({
-            message: 'User added successfully',
-            user: newUser,
-        });
-    } catch (error) {
-        // Handle errors
-        console.error('Error adding user:', error);
-        res.status(500).json({
-            message: 'Error: Could not add user',
-            error: error.message,
-            details: error.errors || error,
-        });
-    }
-});
-
-
-
+// Add a new cost
 router.post('/add', async function (req, res) {
     console.log('Received request to /add');
     const { description, category, user_id, sum, date } = req.body;
@@ -91,6 +45,7 @@ router.post('/add', async function (req, res) {
         categoryCosts.set(category, currentSum + sum);
 
         // Save user after update
+        user.markModified('computed_costs'); // Mark the field as modified
         await user.save();
 
         // Respond to client
@@ -109,7 +64,7 @@ router.post('/add', async function (req, res) {
     }
 });
 
-// Getting Monthly Report
+// Get monthly report
 router.get('/report', async function(req, res, next) {
     const { id, year, month } = req.query;
 
@@ -155,7 +110,7 @@ router.get('/report', async function(req, res, next) {
     }
 });
 
-// Getting the Details of a Specific User
+// Get user details and total costs for the current month
 router.get('/users/:id', async function(req, res, next) {
     const userId = req.params.id.trim();
     try {
@@ -165,14 +120,13 @@ router.get('/users/:id', async function(req, res, next) {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        // קבלת כל החודשים והקטגוריות מתוך ה-computed_costs של המשתמש
+        // Calculate total costs for the current month
         let total = 0;
-        const currentMonth = new Date().toISOString().slice(0, 7); // חישוב חודש נוכחי בפורמט YYYY-MM
+        const currentMonth = new Date().toISOString().slice(0, 7); // Format month: YYYY-MM
 
-        // אם קיימת קטגוריה לחודש הנוכחי, מחשבים את הטוטאל
+        // If there are costs for the current month, calculate the total
         if (user.computed_costs.has(currentMonth)) {
             const categoryCosts = user.computed_costs.get(currentMonth);
-            // חישוב הטוטאל לפי כל הקטגוריות לחודש הנוכחי
             total = Array.from(categoryCosts.values()).reduce((sum, categorySum) => sum + categorySum, 0);
         }
 
@@ -187,7 +141,6 @@ router.get('/users/:id', async function(req, res, next) {
         next(error);
     }
 });
-
 
 /* GET users listing. */
 router.get('/about', function(req, res, next) {
