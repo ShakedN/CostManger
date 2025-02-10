@@ -18,7 +18,7 @@ router.post('/add', async (req, res) => {
         tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
 
         if (costDate < lastMonth && costDate < tenDaysAgo) {
-            return res.status(400).json({ error: 'Cannot add cost for last month after 10 days' });
+            throw CostValidationError.invalidDate();
         }
 
         // יצירת עלות חדשה ושמירה
@@ -27,6 +27,9 @@ router.post('/add', async (req, res) => {
 
         res.status(201).json(newCost);
     } catch (err) {
+        if (err instanceof CostValidationError) {
+            return res.status(400).json({ error: err.message, type: err.type });
+        }
         res.status(500).json({ error: 'An error occurred' });
     }
 });
@@ -37,12 +40,12 @@ router.get("/report", async (req, res) => {
         const { id, year, month } = req.query;
 
         if (!id || !year || !month) {
-            return res.status(400).json({ error: "Missing parameters" });
+            throw ReportValidationError.missingParameters();
         }
 
         const user = await User.findOne({ id });
         if (!user) {
-            return res.status(404).json({ error: "User not found" });
+            throw ReportValidationError.userNotFound();
         }
 
         const requestMonth = `${year}-${String(month).padStart(2, "0")}`;
@@ -95,6 +98,9 @@ router.get("/report", async (req, res) => {
         res.status(200).json({ userid: id, year, month, costs: report });
 
     } catch (err) {
+        if (err instanceof ReportValidationError) {
+            return res.status(400).json({ error: err.message, type: err.type });
+        }
         res.status(500).json({ error: "An error occurred" });
     }
 });
