@@ -3,8 +3,10 @@
 /workspace.xml
 # Editor-based HTTP Client requests
 /httpRequests/
+# Environment variables
+.env
+
 # Node.js dependencies
 /node_modules/
 
-# Environment variables
-.env
+
