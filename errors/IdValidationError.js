@@ -20,13 +20,15 @@ function validateId(req, res, next) {
     const { id } = req.params;
 
     if (id.length > 9) {
-        return next(IdValidationError.wrongLength());
+        return next(IdValidationError.wrongLength());  // Pass the error to next()
     }
 
     if (!/^\d+$/.test(id)) {
-        return next(IdValidationError.incorrectInput());
+        return next(IdValidationError.incorrectInput());  // Pass the error to next()
     }
 
-    next();
+    next();  // Continue to the next middleware or route handler
 }
 
+// Export the validation function and error class
+module.exports = { IdValidationError, validateId };

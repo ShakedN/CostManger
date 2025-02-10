@@ -5,7 +5,9 @@ const costRoute = require('./routes/costRoute'); // Import the routes related to
 const userRoute = require('./routes/userRoute'); // Import the routes related to users
 const aboutRoute = require('./routes/aboutRoute'); // Import the route for "about"
 const app = express(); // Create an instance of Express
-
+const IdValidationError = require('./errors/IdValidationError').IdValidationError;
+const CostValidationError = require('./errors/CostValidationError').CostValidationError;
+const ReportValidationError = require('./errors/ReportValidationError').ReportValidationError;
 // dotenv configuration to load environment variables from a .env file
 const dotenv = require('dotenv');
 dotenv.config();
@@ -34,7 +36,10 @@ app.use((req, res, next) => {
 
 // Global error handling middleware
 app.use((err, req, res, next) => {
-    console.error(err.stack);
+    console.error(err.stack); // Log the stack trace in the backend
+    if (err instanceof IdValidationError || err instanceof CostValidationError || err instanceof ReportValidationError) {
+        return res.status(400).json({ error: err.message }); // Only show the message
+    }
     res.status(500).json({ error: 'Something went wrong!' });
 });
 

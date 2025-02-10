@@ -1,13 +1,11 @@
-// Import required modules
-
 const express = require('express'); // Express framework for routing
 const User = require('../models/users'); // User model to interact with the users collection in MongoDB
 const Cost = require('../models/costs'); // Cost model to interact with costs collection in MongoDB
+const { IdValidationError, validateId } = require('../errors/IdValidationError'); // Correct import
 const router = express.Router(); // Create a new instance of the Express router
 
 // GET route to get details of a specific user by their ID
-// Use the middleware in the route
-router.get('/:id', validateId, async (req, res) => {
+router.get('/:id', validateId, async (req, res, next) => {
     try {
         const { id } = req.params;
 
@@ -32,15 +30,9 @@ router.get('/:id', validateId, async (req, res) => {
         });
 
     } catch (err) {
-        if (err instanceof IdValidationError) {
-            return res.status(400).json({ error: err.message, type: err.type });
-        }
-        res.status(500).json({ error: "An error occurred" });
+        next(err);  // Pass any errors to the error handler
     }
 });
-
-
-
 
 // Export the router so it can be used in app.js
 module.exports = router;
