@@ -1,5 +1,5 @@
 /**
- * @module costRoute
+ * @module cost_route
  * This module defines routes related to cost operations, such as adding a new cost item
  * and generating a report of costs for a specific user based on year and month.
  */
@@ -9,6 +9,8 @@ const mongoose = require('mongoose'); // Mongoose to interact with MongoDB
 const Cost = require('../models/costs'); // Cost model to interact with costs collection in MongoDB
 const User = require('../models/users'); // User model to interact with users collection
 const router = express.Router(); // Create a new router instance for handling routes
+const { CostValidationError, validateCost } = require('../errors/costValidationError'); // Import custom error for cost validation
+const { ReportValidationError, validateReportRequest } = require('../errors/reportValidationError'); // Import custom error for report validation
 
 /**
  * Route to add a new cost item to the database.
@@ -16,7 +18,7 @@ const router = express.Router(); // Create a new router instance for handling ro
  * This route processes a POST request to add a new cost, validates the date (restricting
  * certain dates from being added), and saves the new cost in the database.
  *
- * @route POST /api/cost/add
+ * @route POST api/add
  * @param {string} description - The description of the cost item.
  * @param {string} category - The category of the cost (e.g., food, health, etc.).
  * @param {string} userid - The user ID associated with this cost item.
@@ -27,31 +29,21 @@ const router = express.Router(); // Create a new router instance for handling ro
  * @returns {Object} 500 - Error message for unexpected server errors.
  * @throws {CostValidationError} - If the provided date is more than 10 days old and from last month.
  */
-router.post('/add', async (req, res) => {
+router.post('/add',validateCost, async (req, res) => {
     try {
         const { description, category, userid, sum, date } = req.body;
-        const currentDate = new Date();
-        const costDate = date ? new Date(date) : currentDate;
-
-        // Date validation - prevent adding costs older than 10 days from last month
-        const lastMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
-        const tenDaysAgo = new Date(currentDate);
-        tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
-
-        if (costDate < lastMonth && costDate < tenDaysAgo) {
-            throw CostValidationError.invalidDate();
+        const user = await User.findOne({ id: userid });
+        if (!user) {
+            return res.status(404).json({error: "User not found"});
         }
-
+        const costDate = date ? new Date(date) : new Date();
         // Create and save the new cost item
-        const newCost = new Cost({ description, category, userid, sum, date: costDate });
-        await newCost.save();
+        const new_cost = new Cost({ description, category, userid, sum, date: costDate });
+        await new_cost.save();
 
-        res.status(201).json(newCost);
+        res.status(201).json(new_cost);
     } catch (err) {
-        if (err instanceof CostValidationError) {
-            return res.status(400).json({ error: err.message, type: err.type });
-        }
-        res.status(500).json({ error: 'An error occurred' });
+        next(err);
     }
 });
 
@@ -62,7 +54,7 @@ router.post('/add', async (req, res) => {
  * and generates a report categorized by cost types (e.g., food, health, etc.). It checks
  * whether the report already exists and if it's more than 10 days old before creating a new one.
  *
- * @route GET /api/cost/report
+ * @route GET /api/report
  * @param {string} id - The unique identifier of the user.
  * @param {string} year - The year of the report.
  * @param {string} month - The month of the report (1-12).
@@ -74,12 +66,6 @@ router.post('/add', async (req, res) => {
 router.get("/report", async (req, res) => {
     try {
         const { id, year, month } = req.query;
-
-        // Validate required parameters
-        if (!id || !year || !month) {
-            throw ReportValidationError.missingParameters();
-        }
-
         const user = await User.findOne({ id });
         if (!user) {
             throw ReportValidationError.userNotFound();
@@ -135,10 +121,7 @@ router.get("/report", async (req, res) => {
         res.status(200).json({ userid: id, year, month, costs: report });
 
     } catch (err) {
-        if (err instanceof ReportValidationError) {
-            return res.status(400).json({ error: err.message, type: err.type });
-        }
-        res.status(500).json({ error: "An error occurred" });
+      next(err);
     }
 });
 

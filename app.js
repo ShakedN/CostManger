@@ -10,9 +10,9 @@ const costRoute = require('./routes/costRoute'); // Import the routes related to
 const userRoute = require('./routes/userRoute'); // Import the routes related to users
 const aboutRoute = require('./routes/aboutRoute'); // Import the route for "about"
 const app = express(); // Create an instance of Express
-const IdValidationError = require('./errors/IdValidationError').IdValidationError; // Import custom error for ID validation
-const CostValidationError = require('./errors/CostValidationError').CostValidationError; // Import custom error for cost validation
-const ReportValidationError = require('./errors/ReportValidationError').ReportValidationError; // Import custom error for report validation
+const idValidationError = require('./errors/idValidationError').IdValidationError; // Import custom error for ID validation
+const costValidationError = require('./errors/costValidationError').CostValidationError; // Import custom error for cost validation
+const reportValidationError = require('./errors/reportValidationError').ReportValidationError; // Import custom error for report validation
 const dotenv = require('dotenv'); // dotenv to load environment variables from .env file
 dotenv.config(); // Load environment variables
 
@@ -75,7 +75,7 @@ app.use((req, res, next) => {
 /**
  * Global error handling middleware.
  * This middleware catches any errors thrown by the application and logs them.
- * If the error is one of the custom validation errors (IdValidationError, CostValidationError, or ReportValidationError),
+ * If the error is one of the custom validation errors (idValidationError, costValidationError, or reportValidationError),
  * a 400 response is sent with the error message.
  * Otherwise, a 500 response is sent for general errors.
  *
@@ -87,7 +87,7 @@ app.use((req, res, next) => {
  */
 app.use((err, req, res, next) => {
     console.error(err.stack); // Log the stack trace for debugging
-    if (err instanceof IdValidationError || err instanceof CostValidationError || err instanceof ReportValidationError) {
+    if (err instanceof idValidationError || err instanceof costValidationError || err instanceof reportValidationError) {
         return res.status(400).json({ error: err.message }); // Return validation error with a 400 status
     }
     res.status(500).json({ error: 'Something went wrong!' }); // Return general error with a 500 status
