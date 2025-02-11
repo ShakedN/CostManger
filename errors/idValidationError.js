@@ -42,7 +42,7 @@ class IdValidationError extends Error {
      */
     static validateId(req, res, next) {
         // Retrieve the ID from various sources (params, query, body)
-        const id = req.params.id || req.query.id || req.body.userid;
+        const id =  req.query.id || req.body.userid;
 
         // Check if ID exceeds maximum length
         if (id.length > 9) {

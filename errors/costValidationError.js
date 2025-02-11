@@ -99,7 +99,7 @@ class CostValidationError extends Error {
             }
 
             const currentDate = new Date();
-            let costDate = date ? new Date(date) : currentDate;
+            const costDate = date ? new Date(date) : currentDate;
 
             // Validate if the date is a real calendar date
             if (isNaN(costDate.getTime())) {
@@ -121,16 +121,14 @@ class CostValidationError extends Error {
                 }
             }
 
-            // Calculate the last allowed date (10 days after the last day of the previous month)
-            const lastMonthLastDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
-            const lastAllowedDate = new Date(lastMonthLastDay);
-            lastAllowedDate.setDate(lastMonthLastDay.getDate() + 10);
+            // בדיקת תאריך - אם התאריך בחודש שעבר ועברו יותר מ-10 ימים, נחסום
+            const lastMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+            const tenDaysAgo = new Date(currentDate);
+            tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
 
-            // Check if the date is within the allowed range
-            if (costDate <= lastMonthLastDay || costDate > lastAllowedDate) {
+            if (costDate < lastMonth && costDate < tenDaysAgo){
                 return next(CostValidationError.outdatedDate());
             }
-
             next();
         });
     }

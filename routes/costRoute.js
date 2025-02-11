@@ -29,31 +29,19 @@ const { ReportValidationError, validateReportRequest } = require('../errors/repo
  * @returns {Object} 500 - Error message for unexpected server errors.
  * @throws {CostValidationError} - If the provided date is more than 10 days old and from last month.
  */
-router.post('/add',validateCost, async (req, res) => {
+router.post('/add',validateCost, async (req, res,next) => {
     try {
         const { description, category, userid, sum, date } = req.body;
         const user = await User.findOne({ id: userid });
         if (!user) {
             return res.status(404).json({error: "User not found"});
         }
-        const costDate = date ? new Date(date) : new Date();
 
-
-        // חשב את התאריך האחרון של החודש הקודם
-        const lastDayOfPreviousMonth = new Date(costDate.getFullYear(), costDate.getMonth(), 0);
-        // הוסף 10 ימים לסוף החודש הקודם
-        lastDayOfPreviousMonth.setDate(lastDayOfPreviousMonth.getDate() + 10);
-
-        // אם התאריך הנוכחי גדול מהתאריך האחרון של החודש הקודם בתוספת 10 ימים
-        if (costDate > lastDayOfPreviousMonth) {
-            return res.status(400).json({ error: "Cannot add cost, more than 10 days have passed since the end of the previous month" });
-        }
         // Create and save the new cost item
-        const new_cost = new Cost({ description, category, userid, sum, date: costDate });
+        const new_cost = new Cost({ description, category, userid, sum, date: date });
         await new_cost.save();
+        res.status(201).json(new_cost);
 
-        res.status(201).json(new_cost);
-        res.status(201).json(new_cost);
     } catch (err) {
         next(err);
     }
@@ -78,20 +66,25 @@ router.post('/add',validateCost, async (req, res) => {
 router.get("/report",validateReportRequest, async (req, res,next) => {
     try {
         const { id, year, month } = req.query;
-        const requestMonth = `${year}-${String(month).padStart(2, "0")}`;
 
+        const user = await User.findOne({id});
+        if (!user) {
+            return res.status(404).json({error: "User not found"});
+        }
         // Calculate the number of days since the end of the month
+        const requestMonth = `${year}-${month.padStart(2, "0")}`;
         const now = new Date();
-        const lastDayOfMonth = new Date(year, month-1, 0);
-        const daysSinceEndOfMonth = (now - lastDayOfMonth) / (1000 * 60 * 60 * 24);
+        const endOfRequestedMonth = new Date(year, month, 0); // תאריך סוף החודש המבוקש
+        const lastDayOfRequestedMonth = endOfRequestedMonth.getDate(); // מקבלים את התאריך האחרון של החודש המבוקש
 
+        const daysSinceEndOfRequestedMonth = (now - endOfRequestedMonth) / (1000 * 60 * 60 * 24);
         // If it's been more than 10 days and the report exists, return the saved report
-        if (daysSinceEndOfMonth > 10 && user.computed_costs?.[requestMonth]) {
+        if (daysSinceEndOfRequestedMonth > 10 && user.computed_costs && user.computed_costs.has(requestMonth)) {
             return res.status(200).json({
                 userid: id,
                 year,
                 month,
-                costs: user.computed_costs[requestMonth]
+                costs: user.computed_costs.get(requestMonth)
             });
         }
 
@@ -108,7 +101,7 @@ router.get("/report",validateReportRequest, async (req, res,next) => {
         const categories = ["food", "health", "housing", "sport", "education"];
         const report = {};
         categories.forEach(category => {
-            report[category] =[];
+            report[category] = [];
         });
 
         costs.forEach(cost => {
@@ -122,7 +115,7 @@ router.get("/report",validateReportRequest, async (req, res,next) => {
         });
 
         // If it's been more than 10 days, save the report for future use
-        if (daysSinceEndOfMonth > 10) {
+        if (daysSinceEndOfRequestedMonth <= 10) {
             await User.updateOne({ id }, { $set: { [`computed_costs.${requestMonth}`]: report } });
         }
 
