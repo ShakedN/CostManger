@@ -37,10 +37,22 @@ router.post('/add',validateCost, async (req, res) => {
             return res.status(404).json({error: "User not found"});
         }
         const costDate = date ? new Date(date) : new Date();
+
+
+        // חשב את התאריך האחרון של החודש הקודם
+        const lastDayOfPreviousMonth = new Date(costDate.getFullYear(), costDate.getMonth(), 0);
+        // הוסף 10 ימים לסוף החודש הקודם
+        lastDayOfPreviousMonth.setDate(lastDayOfPreviousMonth.getDate() + 10);
+
+        // אם התאריך הנוכחי גדול מהתאריך האחרון של החודש הקודם בתוספת 10 ימים
+        if (costDate > lastDayOfPreviousMonth) {
+            return res.status(400).json({ error: "Cannot add cost, more than 10 days have passed since the end of the previous month" });
+        }
         // Create and save the new cost item
         const new_cost = new Cost({ description, category, userid, sum, date: costDate });
         await new_cost.save();
 
+        res.status(201).json(new_cost);
         res.status(201).json(new_cost);
     } catch (err) {
         next(err);
@@ -69,16 +81,17 @@ router.get("/report",validateReportRequest, async (req, res,next) => {
         const requestMonth = `${year}-${String(month).padStart(2, "0")}`;
 
         // Calculate the number of days since the end of the month
-        let now = new Date();
-        let daysSinceEndOfMonth = (now - new Date(year, month, 0)) / (1000 * 60 * 60 * 24);
+        const now = new Date();
+        const lastDayOfMonth = new Date(year, month-1, 0);
+        const daysSinceEndOfMonth = (now - lastDayOfMonth) / (1000 * 60 * 60 * 24);
 
         // If it's been more than 10 days and the report exists, return the saved report
-        if (daysSinceEndOfMonth > 10 && user.computed_costs && user.computed_costs.has(requestMonth)) {
+        if (daysSinceEndOfMonth > 10 && user.computed_costs?.[requestMonth]) {
             return res.status(200).json({
                 userid: id,
                 year,
                 month,
-                costs: user.computed_costs.get(requestMonth)
+                costs: user.computed_costs[requestMonth]
             });
         }
 
@@ -95,7 +108,7 @@ router.get("/report",validateReportRequest, async (req, res,next) => {
         const categories = ["food", "health", "housing", "sport", "education"];
         const report = {};
         categories.forEach(category => {
-            report[category] = [];
+            report[category] =[];
         });
 
         costs.forEach(cost => {
