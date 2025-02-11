@@ -1,7 +1,10 @@
 /**
          * Define a custom error class for cost validation.
          */
-        class CostValidationError extends Error {
+
+const { IdValidationError, validateId } = require('../errors/idValidationError'); // Correct import
+
+class CostValidationError extends Error {
             /**
              * Constructs a new CostValidationError.
              * @param {string} message - The error message.
@@ -42,56 +45,67 @@
             }
 
             static validateCost(req, res, next) {
-                const { description, category, userid, sum, date } = req.body;
+                const {description, category, userid, sum, date} = req.body;
                 const validCategories = ['food', 'health', 'housing', 'sport', 'education'];
+                validateId(req, res, (err) => {
+                    if (err) {
+                        return next(err);
+                    }
 
-                // בדיקה שכל השדות קיימים
-                if (!description || !category || !userid || !sum) {
-                    return next(CostValidationError.missingParameters());
-                }
+                    // בדיקה שכל השדות קיימים
+                    if (!description || !category || !userid || !sum) {
+                        return next(CostValidationError.missingParameters());
+                    }
 
-                 // בדיקה שהקטגוריה חוקית
-                if (!validCategories.includes(category)) {
-                      return next(CostValidationError.invalidCategory())
-                }
+                    // בדיקה שהקטגוריה חוקית
+                    if (!validCategories.includes(category)) {
+                        return next(CostValidationError.invalidCategory())
+                    }
 
-                  // בדיקה שהסכום חוקי
-                if (typeof sum !== "number" || sum <= 0) {
-                    return next(CostValidationError.invalidSum());
-                }
+                    // בדיקה שהסכום חוקי
+                    if (typeof sum !== "number" || sum < 0) {
+                        return next(CostValidationError.invalidSum());
+                    }
 
-                const currentDate = new Date();
-                let costDate = date ? new Date(date) : currentDate;
+                    const currentDate = new Date();
+                    let costDate = date ? new Date(date) : currentDate;
 
-                // בדיקה שהתאריך חוקי ולא מכיל ערכים לא ריאליים
-                if (isNaN(costDate.getTime())) {
-                    return next(CostValidationError.invalidDateValue());
-                }
-
-                // בדיקה שהתאריך בפורמט תקין (YYYY-MM-DD)
-                const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-                if (date && !dateRegex.test(date)) {
-                    return next(CostValidationError.invalidDateFormat());
-                }
-
-                // בדיקה שהתאריך קיים בלוח השנה
-                if (date) {
-                    const [year, month, day] = date.split("-").map(Number);
-                    const parsedDate = new Date(year, month - 1, day);
-                    if (parsedDate.getFullYear() !== year || parsedDate.getMonth() + 1 !== month || parsedDate.getDate() !== day) {
+                    // בדיקה שהתאריך חוקי ולא מכיל ערכים לא ריאליים
+                    if (isNaN(costDate.getTime())) {
                         return next(CostValidationError.invalidDateValue());
                     }
-                }
 
-                // בדיקה שהתאריך לא ישן מדי
-                const lastMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
-                const tenDaysAgo = new Date(currentDate);
-                tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+                    // בדיקה שהתאריך בפורמט תקין (YYYY-MM-DD)
+                    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+                    if (date && !dateRegex.test(date)) {
+                        return next(CostValidationError.invalidDateFormat());
+                    }
 
-                if (costDate < lastMonth && costDate < tenDaysAgo) {
-                    return next(CostValidationError.outdatedDate());
-                }
-                next();
+                    // בדיקה שהתאריך קיים בלוח השנה
+                    if (date) {
+                        const [year, month, day] = date.split("-").map(Number);
+                        const parsedDate = new Date(year, month - 1, day);
+                        if (parsedDate.getFullYear() !== year || parsedDate.getMonth() + 1 !== month || parsedDate.getDate() !== day) {
+                            return next(CostValidationError.invalidDateValue());
+                        }
+                    }
+
+                    // בדיקה שהתאריך לא ישן מדי
+
+// ✅ **חישוב התאריך האחרון של החודש הקודם**
+                    const lastMonthLastDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
+
+// ✅ חישוב התאריך האחרון שמותר (10 ימים אחרי סוף החודש הקודם)
+                    const lastAllowedDate = new Date(lastMonthLastDay);
+                    lastAllowedDate.setDate(lastMonthLastDay.getDate() + 10);
+
+// ✅ בדיקה שהתאריך נמצא בטווח המותר בלבד (תוך החודש הקודם או עד 10 ימים אחרי)
+                    if (costDate <= lastMonthLastDay || costDate > lastAllowedDate) {
+                        return next(CostValidationError.outdatedDate());
+                    }
+
+                    next();
+                });
             }
 
         }

@@ -11,8 +11,10 @@ class IdValidationError extends Error {
             return new IdValidationError("ID must be no more than 9 characters long", "Wrong Length");
         }
         static validateId(req, res, next) {
-             const { id } = req.params;
-             if (id.length > 9) {
+
+            // חיפוש ה-ID מהמקורות השונים (params, query, body)
+            const id = req.params.id || req.query.id || req.body.userid;
+            if (id.length > 9) {
                  return next(IdValidationError.wrongLength());
              }
              if (!/^\d+$/.test(id)) {

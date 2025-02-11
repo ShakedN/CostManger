@@ -63,14 +63,9 @@ router.post('/add',validateCost, async (req, res) => {
  * @returns {Object} 500 - Error message for unexpected server errors.
  * @throws {ReportValidationError} - If the required query parameters are missing or user is not found.
  */
-router.get("/report", async (req, res) => {
+router.get("/report",validateReportRequest, async (req, res,next) => {
     try {
         const { id, year, month } = req.query;
-        const user = await User.findOne({ id });
-        if (!user) {
-            throw ReportValidationError.userNotFound();
-        }
-
         const requestMonth = `${year}-${String(month).padStart(2, "0")}`;
 
         // Calculate the number of days since the end of the month

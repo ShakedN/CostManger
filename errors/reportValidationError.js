@@ -1,7 +1,10 @@
 /**
          * Define a custom error class for report validation.
          */
-        class ReportValidationError extends Error {
+
+const { IdValidationError, validateId } = require('../errors/idValidationError'); // Correct import
+
+class ReportValidationError extends Error {
             /**
              * Constructs a new reportValidationError.
              * @param {string} message - The error message.
@@ -26,7 +29,7 @@
              * @returns {ReportValidationError} The error instance.
              */
             static userNotFound() {
-                return new reportValidationError("User not found", "User Not Found");
+                return new ReportValidationError("User not found", "User Not Found");
             }
 
             static invalidYearFormat() {
@@ -43,32 +46,40 @@
 
 
             static validateReportRequest(req, res, next) {
-                const { id, year, month } = req.query;
+                const {id, year, month} = req.query;
 
-                // בדיקה שכל השדות קיימים
-                if (!id || !year || !month) {
-                    return next(ReportValidationError.missingParameters());
-                }
+                validateId(req, res, (err) => {
+                    if (err) {
+                        return next(err);
+                    }
 
-                // בדיקת תקינות השנה
-                if (!/^\d{4}$/.test(year)) {
-                    return next(ReportValidationError.invalidYearFormat());
-                }
+                    // בדיקה שכל השדות קיימים
+                    if (!id || !year || !month) {
+                        return next(ReportValidationError.missingParameters());
+                    }
 
-                // בדיקת תקינות החודש (מספר בין 1 ל-12)
-                if (!/^(0?[1-9]|1[0-2])$/.test(month)) {
-                    return next(ReportValidationError.invalidMonthFormat());
-                }
+                    // בדיקת תקינות השנה
+                    const numericYear = Number(year);
+                    const yearStr = String(year);
+                    if (!/^\d{4}$/.test(yearStr) || numericYear < 1900 || numericYear > 2100) {
+                        return next(ReportValidationError.invalidYearFormat());
+                    }
 
-                // בדיקת שילוב שנה-חודש תקין
-                const parsedYear = parseInt(year, 10);
-                const parsedMonth = parseInt(month, 10);
-                const isValidDate = new Date(parsedYear, parsedMonth - 1, 1).getMonth() + 1 === parsedMonth;
-                if (!isValidDate) {
-                    return next(ReportValidationError.invalidDateCombination());
-                }
+                    // בדיקת תקינות החודש (מספר בין 1 ל-12)
+                    if (!/^(0?[1-9]|1[0-2])$/.test(month)) {
+                        return next(ReportValidationError.invalidMonthFormat());
+                    }
 
-                next();
+                    // בדיקת שילוב שנה-חודש תקין
+                    const parsedYear = parseInt(year, 10);
+                    const parsedMonth = parseInt(month, 10);
+                    const isValidDate = new Date(parsedYear, parsedMonth - 1, 1).getMonth() + 1 === parsedMonth;
+                    if (!isValidDate) {
+                        return next(ReportValidationError.invalidDateCombination());
+                    }
+
+                    next();
+                });
             }
         }
 
